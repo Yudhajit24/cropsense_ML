@@ -15,7 +15,7 @@ import io
 import numpy as np
 
 import joblib
-from groq import Groq
+from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 
 # PIL for image preprocessing (must match CNN training preprocessing exactly)
@@ -274,16 +274,16 @@ def predict_from_image(image_bytes: bytes, region: str) -> dict:
     }
 
 
-# ─── NLP Chatbot (unchanged from v1) ─────────────────────────────────────────
+# ─── NLP Chatbot ─────────────────────────────────────────────────────────────
 def chat(user_message, conversation_history):
-    """Farm expert chatbot using Groq (Mixtral 8x7B)."""
+    """Farm expert chatbot using Hugging Face (Mistral 7B)."""
     load_dotenv()
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key or api_key == "your_groq_api_key_here":
-        return "System notice: Groq API key is not configured. Please add it to the .env file."
+    api_key = os.getenv("HUGGINGFACE_API_KEY")
+    if not api_key or api_key == "your_hf_api_key_here":
+        return "System notice: Hugging Face API key is not configured. Please add it to the .env file."
 
     try:
-        client = Groq(api_key=api_key)
+        client = InferenceClient("mistralai/Mistral-7B-Instruct-v0.3", token=api_key)
 
         system_prompt = (
             "You are an expert Indian agricultural scientist with 20 years of experience "
@@ -296,13 +296,12 @@ def chat(user_message, conversation_history):
             messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
         messages.append({"role": "user", "content": user_message})
 
-        response = client.chat.completions.create(
-            model="mixtral-8x7b-32768",
+        response = client.chat_completion(
             messages=messages,
             temperature=0.7,
             max_tokens=1024,
         )
         return response.choices[0].message.content
     except Exception as e:
-        print(f"Groq error: {e}")
+        print(f"Hugging Face error: {e}")
         return "I'm having trouble connecting to my knowledge base right now. Please try again later."

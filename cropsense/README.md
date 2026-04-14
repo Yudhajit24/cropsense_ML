@@ -30,7 +30,7 @@ Built as an educational artifact for **Manipal University Jaipur — CSE3231 ML 
 | **Backend API** | Python 3.11, FastAPI, Uvicorn |
 | **CNN (v2)** | TensorFlow/Keras, Pillow — custom 4-block CNN from scratch |
 | **ML Engine** | `scikit-learn`, `xgboost`, `shap`, `pandas`, `numpy`, `joblib` |
-| **GenAI** | Groq (Mixtral 8x7B) |
+| **GenAI** | Hugging Face Inference API (Mistral 7B) |
 
 ---
 
@@ -61,7 +61,7 @@ cd cropsense/backend
 pip install -r requirements.txt
 ```
 
-Copy `.env.example` to `.env` and add your `GROQ_API_KEY`.
+Copy `.env.example` to `.env` and add your `HUGGINGFACE_API_KEY`.
 
 Train the ensemble models (generates pickles in `models/saved/`):
 ```bash
