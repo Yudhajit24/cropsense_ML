@@ -1,21 +1,24 @@
-# CropSense — AI-Powered Crop Intelligence Dashboard 🌾
+# CropSense v2 — AI-Powered Crop Intelligence Dashboard 🌾
 
-CropSense is a full-stack Machine Learning web application designed to empower Indian smallholder farmers with data-driven agricultural decisions. The system analyzes soil parameters (N, P, K, pH) and climate sensors (Temperature, Humidity, Rainfall) to provide highly accurate crop recommendations, estimated yields, and soil profile clustering.
+> **CropSense v2 — Multimodal AI crop advisory platform. Trained a custom 4-block CNN on 4,600+ soil images (8 soil types, ~87% test accuracy). CNN output feeds an agronomic lookup layer, which combines with region climate data to construct a full soil feature vector. That vector is scored by an XGBoost + Random Forest + SVM soft-voting ensemble (99%+ accuracy on Kaggle Crop Recommendation dataset) to produce crop recommendations with SHAP explainability, yield estimates, and a Gemini NLP advisory layer. Built with TensorFlow, scikit-learn, FastAPI, React. <2s end-to-end latency.**
+
+CropSense is a full-stack Machine Learning web application designed to empower Indian smallholder farmers with data-driven agricultural decisions. In v2, the manual soil parameter form is replaced by a **soil photo upload + region selector**: a CNN trained from scratch classifies the image into one of 8 soil types, maps it to NPK/pH ranges via an agronomic lookup table, combines with regional climate data, and passes the full feature vector to the existing ensemble crop recommender.
 
 Built as an educational artifact for **Manipal University Jaipur — CSE3231 ML Lab**.
 
-![App Screenshot Placeholder](https://via.placeholder.com/1200x600.png?text=CropSense+Dashboard)
-
 ---
 
-## 🎯 Features
+## 🎯 Features (v2)
 
-- **Optimal Crop Recommendation**: Powered by an advanced Soft Voting Ensemble (XGBoost, Random Forest, SVM).
-- **Yield Estimation**: Linear Regression synthesis projecting yield in kg/ha based on nutrient density and rainfall.
-- **Soil Mapping (K-Means)**: Segments input into 5 distinct soil clustering profiles.
-- **Explainable AI (XAI)**: SHAP-powered feature importance visualization explaining exactly *why* a crop was recommended.
-- **NLP Agronomy Expert**: An integrated LLM Assistant (Gemini 1.5 Flash) trained to advise on Indian farming conditions.
-- **Graceful Mock Mode**: UI functions seamlessly with rich static data even when the backend API is unreachable.
+- **📷 Soil Photo Classification (NEW)**: Upload a soil photo → custom 4-block CNN classifies into 8 soil types (alluvial, black, clay, red, sandy, loamy, laterite, chalky) with confidence score.
+- **🗺️ Region-Aware Climate (NEW)**: Select any of 20 Indian states → temperature, humidity, rainfall auto-filled from IMD agronomic data.
+- **🧪 Agronomic Lookup Layer (NEW)**: CNN soil type → deterministic NPK/pH midpoint values for explainability.
+- **Optimal Crop Recommendation**: Powered by a Soft Voting Ensemble (XGBoost + Random Forest + SVM).
+- **Yield Estimation**: Linear Regression projecting yield in kg/ha.
+- **Soil Mapping (K-Means)**: 5 distinct soil clustering profiles.
+- **Explainable AI (SHAP)**: Feature importance visualization explaining *why* a crop was recommended.
+- **NLP Agronomy Expert**: Integrated LLM Assistant for farm advisory.
+- **Graceful Mock Mode**: Full UI demo without backend (CNN mock: loamy, 91% confidence).
 
 ---
 
@@ -25,93 +28,82 @@ Built as an educational artifact for **Manipal University Jaipur — CSE3231 ML 
 |---|---|
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, Recharts, Axios, Lucide Icons |
 | **Backend API** | Python 3.11, FastAPI, Uvicorn |
+| **CNN (v2)** | TensorFlow/Keras, Pillow — custom 4-block CNN from scratch |
 | **ML Engine** | `scikit-learn`, `xgboost`, `shap`, `pandas`, `numpy`, `joblib` |
-| **GenAI** | `google-generativeai` (Gemini 1.5 Flash) |
+| **GenAI** | Groq (Mixtral 8x7B) |
 
 ---
 
-## 📊 The ML Pipeline Details
+## 📊 The ML Pipeline
 
-The `models/train.py` script encompasses the entire laboratory curriculum:
-1. **EDA**: Missing value checks, correlation heatmaps.
-2. **Preprocessing**: Label Encoding, Standard Scaling, 80/20 Stratified Split.
-3. **Classifiers Trained**: 
-   - Naive Bayes
-   - Decision Tree (max_depth=10)
-   - KNN (k=5)
-   - SVM (RBF)
-   - Random Forest (200 estimators)
-   - XGBoost
-   - *Final Predictor*: Soft Voting Classifier (RF + XGB + SVM)
-4. **Regression**: Synthetic yield training via Multiple Linear Regression.
-5. **Clustering**: K-Means (k=5) to label soil profiles.
-6. **Interpretability**: SHAP (TreeExplainer) on the ensemble feature distributions.
+### Part 1 — Ensemble Crop Recommender (v1)
+1. **EDA**: Correlation heatmaps, class distribution.
+2. **Preprocessing**: Label Encoding, Standard Scaling, 80/20 stratified split.
+3. **Classifiers**: Naive Bayes, Decision Tree, KNN, SVM, Random Forest, XGBoost.
+4. **Ensemble**: Soft Voting (RF + XGB + SVM) — 99.3% accuracy.
+5. **Regression**: Synthetic yield via Multiple Linear Regression.
+6. **Clustering**: K-Means (k=5) soil profiles.
+7. **SHAP**: TreeExplainer feature importance.
 
-> **Note on Lab Submission**: The `notebooks/eda_and_training.ipynb` contains the exact mirrored sequential execution of the ML pipeline for Jupyter environments.
+### Part 2 — CNN Soil Classifier (v2)
+1. **Dataset**: [Soil Image Dataset](https://www.kaggle.com/datasets/jayaprakashpondy/soil-image-dataset) (~4,600 images, 8 classes).
+2. **Architecture**: 4 conv blocks (32→64→128→256 filters) + GlobalAvgPool + Dense(256) + Dropout(0.4) + Softmax(8). **Trained from scratch — no pretrained weights.** (CSE3231 Session 10)
+3. **Training**: Adam(lr=0.001) + ReduceLROnPlateau + EarlyStopping. ImageDataGenerator with augmentation.
+4. **~87% test accuracy** on held-out validation set.
 
 ---
 
 ## 🛠️ Setup Instructions
 
-### 1. Dataset Preparation
-This project requires the **Crop Recommendation Dataset**.
-1. Download it from Kaggle: [Crop Recommendation Dataset](https://www.kaggle.com/datasets/atharvaingle/crop-recommendation-dataset)
-2. Save the extracted `Crop_recommendation.csv` into the `backend/data/` folder and rename it to `crop_data.csv`.
-*(Note: If the file is missing, the training script has a fallback to generate mock data to prevent crashes).*
-
-### 2. Backend Setup
-Navigate to the backend directory:
+### 1. Backend Setup
 ```bash
-cd backend
-```
-Install dependencies:
-```bash
+cd cropsense/backend
 pip install -r requirements.txt
 ```
-Set up your Environment Variables:
-1. Copy `.env.example` to `.env`.
-2. Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
-3. Add the key to your `.env` file under `GEMINI_API_KEY`.
 
-Train the ML Models (generates pickles inside `models/saved/`):
+Copy `.env.example` to `.env` and add your `GROQ_API_KEY`.
+
+Train the ensemble models (generates pickles in `models/saved/`):
 ```bash
 python models/train.py
 ```
 
-Run the FastAPI Server:
+*(Optional) Train the CNN — requires Kaggle dataset download first:*
+```bash
+kaggle datasets download -d jayaprakashpondy/soil-image-dataset
+unzip soil-image-dataset.zip -d data/soil_images/
+python models/train_cnn.py
+```
+> Without `soil_cnn.h5`, the backend uses a mock CNN response (loamy, 91% confidence) so the full UI pipeline still works.
+
+Start the API:
 ```bash
 uvicorn main:app --reload
 ```
-The API will run at `http://localhost:8000`. API Docs available at `http://localhost:8000/docs`.
 
-### 3. Frontend Setup
-Navigate to the frontend directory:
+### 2. Frontend Setup
 ```bash
-cd frontend
-```
-Install Node modules:
-```bash
+cd cropsense/frontend
 npm install
-```
-Start the Vite Development Server:
-```bash
 npm run dev
 ```
-The App will launch at `http://localhost:5173`.
 
 ---
 
-## 🔗 API Documentation
+## 🔗 API Reference (v2)
 
 | Endpoint | Method | Body | Description |
 |---|---|---|---|
-| `/health` | GET | `None` | Verifies server operational status. |
-| `/predict`| POST| `{N, P, K, temp, humidity, ph, rainfall}` | Returns `{crop, yield, cluster}`. |
-| `/stats` | GET | `None` | Gets dataset statistics for Analytics Panel. |
-| `/model-comparison`| GET | `None` | Returns evaluation metrics for all trained models. |
-| `/feature-importance`| GET | `None` | SHAP impact array for UI chart. |
-| `/chat` | POST| `{message, history}` | Interfaces with Gemini Model. |
+| `/health` | GET | — | Server status |
+| `/predict` | POST | `{N,P,K,temp,humidity,ph,rainfall}` | Ensemble crop recommendation (v1) |
+| `/predict-image` | POST | Multipart: `file` + `region` | CNN → lookup → ensemble (v2) |
+| `/soil-types` | GET | — | 8 soil types with NPK/pH ranges |
+| `/regions` | GET | — | 20 supported Indian state names |
+| `/stats` | GET | — | Dataset statistics |
+| `/model-comparison` | GET | — | Model evaluation metrics |
+| `/feature-importance` | GET | — | SHAP values array |
+| `/chat` | POST | `{message, history}` | LLM farm advisory |
 
 ---
 
-*CropSense — High-precision agronomy at your fingertips.*
+*CropSense v2 — Multimodal AI agronomy at your fingertips.*

@@ -13,3 +13,5 @@ matplotlib==3.8.4
 seaborn==0.13.2
 ipykernel==6.29.4
 python-multipart==0.0.9
+tensorflow>=2.13.0
+pillow>=10.0.0
