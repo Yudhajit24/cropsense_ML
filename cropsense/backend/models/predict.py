@@ -112,9 +112,10 @@ def _load_cnn():
         models['cnn'] = tf.keras.models.load_model(CNN_MODEL_PATH)
         with open(CLASS_IDX_PATH, 'r') as f:
             raw = json.load(f)
-        # Invert: {class_name: idx} → {idx: class_name}
-        models['cnn_idx_to_class'] = {int(v): k.lower() for k, v in raw.items()}
-        print(f"✅ Soil CNN loaded ({len(models['cnn_idx_to_class'])} classes).")
+        # class_indices.json stores {normalised_name: int_index}
+        # Invert to {int_index: normalised_name} for argmax lookup
+        models['cnn_idx_to_class'] = {int(v): k for k, v in raw.items()}
+        print(f"✅ Soil CNN loaded ({len(models['cnn_idx_to_class'])} classes): {list(models['cnn_idx_to_class'].values())}")
     except Exception as e:
         print(f"WARNING: Could not load soil CNN: {e}")
 

@@ -62,7 +62,9 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 # ─── Paths ───────────────────────────────────────────────────────────────────
 BASE_DIR       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR       = os.path.join(BASE_DIR, 'data', 'soil_images')
+DATA_DIR       = os.path.join(BASE_DIR, 'data', 'soil_images', 'Dataset')
+TRAIN_DIR      = os.path.join(DATA_DIR, 'Train')
+TEST_DIR       = os.path.join(DATA_DIR, 'test')
 SAVED_DIR      = os.path.join(BASE_DIR, 'models', 'saved')
 MODEL_PATH     = os.path.join(SAVED_DIR, 'soil_cnn.h5')
 INDICES_PATH   = os.path.join(SAVED_DIR, 'class_indices.json')
@@ -73,15 +75,17 @@ os.makedirs(SAVED_DIR, exist_ok=True)
 # ─── Hyper-parameters ────────────────────────────────────────────────────────
 IMG_SIZE    = (224, 224)
 BATCH_SIZE  = 32
-EPOCHS      = 50        # EarlyStopping will trigger well before this
-LR          = 0.001
-NUM_CLASSES = 8
+EPOCHS      = 80        # EarlyStopping will trigger before this on a good run
+LR          = 5e-4     # lower LR = more stable on small dataset
+# Actual Kaggle dataset has 4 classes; NUM_CLASSES is inferred at runtime
+NUM_CLASSES = None  # set dynamically from flow_from_directory
 
-# ─── 80 / 10 / 10 split helper ───────────────────────────────────────────────
-def build_generators(data_dir: str):
+# ─── Data generators — uses the pre-split Train / test directories ───────────
+def build_generators():
     """
-    Build train / val / test ImageDataGenerators.
-    Train: augmented  |  Val & Test: rescale only.
+    The Kaggle dataset comes pre-split into Dataset/Train and Dataset/test.
+    - Train dir: used with augmentation + 10% validation_split
+    - Test  dir: used as held-out test set (rescale only, no shuffle)
     """
     train_datagen = ImageDataGenerator(
         rescale=1.0 / 255.0,
@@ -91,17 +95,13 @@ def build_generators(data_dir: str):
         horizontal_flip=True,
         zoom_range=0.2,
         brightness_range=[0.8, 1.2],
-        validation_split=0.2,   # 80 train / 20 temp
+        validation_split=0.1,   # 90% train / 10% val from Train dir
     )
 
-    # We split the 20% temp into equal val and test (10 / 10 total)
-    val_test_datagen = ImageDataGenerator(
-        rescale=1.0 / 255.0,
-        validation_split=0.5,   # split the 20% temp in half
-    )
+    test_datagen = ImageDataGenerator(rescale=1.0 / 255.0)
 
     train_gen = train_datagen.flow_from_directory(
-        data_dir,
+        TRAIN_DIR,
         target_size=IMG_SIZE,
         batch_size=BATCH_SIZE,
         class_mode='categorical',
@@ -110,9 +110,8 @@ def build_generators(data_dir: str):
         seed=42,
     )
 
-    # Validation (10% of total)
-    val_gen = val_test_datagen.flow_from_directory(
-        data_dir,
+    val_gen = train_datagen.flow_from_directory(
+        TRAIN_DIR,
         target_size=IMG_SIZE,
         batch_size=BATCH_SIZE,
         class_mode='categorical',
@@ -121,9 +120,15 @@ def build_generators(data_dir: str):
         seed=42,
     )
 
-    # Test set — same generator config as val but we treat it as test
-    # We use val_gen images but evaluate separately after training
-    return train_gen, val_gen
+    test_gen = test_datagen.flow_from_directory(
+        TEST_DIR,
+        target_size=IMG_SIZE,
+        batch_size=BATCH_SIZE,
+        class_mode='categorical',
+        shuffle=False,
+    )
+
+    return train_gen, val_gen, test_gen
 
 
 # ─── CNN Architecture ────────────────────────────────────────────────────────
@@ -175,10 +180,13 @@ def build_model(num_classes: int = NUM_CLASSES) -> Sequential:
 
 # ─── Training ────────────────────────────────────────────────────────────────
 def train():
-    if not os.path.isdir(DATA_DIR):
+    if not os.path.isdir(TRAIN_DIR):
         raise FileNotFoundError(
-            f"\n[ERROR] Dataset not found at: {DATA_DIR}\n"
-            "Please download from Kaggle:\n"
+            f"\n[ERROR] Train directory not found at: {TRAIN_DIR}\n"
+            "Expected structure after extraction:\n"
+            "  data/soil_images/Dataset/Train/<class_folders>/\n"
+            "  data/soil_images/Dataset/test/<class_folders>/\n"
+            "Download from Kaggle:\n"
             "  kaggle datasets download -d jayaprakashpondy/soil-image-dataset\n"
             "  unzip soil-image-dataset.zip -d data/soil_images/\n"
         )
@@ -195,20 +203,24 @@ def train():
 
     # ── Data ──────────────────────────────────────────────────────
     print("[1/4] Building data generators...")
-    train_gen, val_gen = build_generators(DATA_DIR)
+    train_gen, val_gen, test_gen = build_generators()
+    num_classes = len(train_gen.class_indices)
 
-    # Save class indices
-    class_indices = train_gen.class_indices
+    # Normalise class names to lowercase (e.g. 'Alluvial soil' → 'alluvial soil')
+    class_indices = {k.lower().replace(' soil', '').replace(' ', '_'): v
+                     for k, v in train_gen.class_indices.items()}
     with open(INDICES_PATH, 'w') as f:
         json.dump(class_indices, f, indent=2)
-    print(f"      Classes : {list(class_indices.keys())}")
-    print(f"      Train samples : {train_gen.samples}")
-    print(f"      Val samples   : {val_gen.samples}")
+    print(f"      Classes      : {list(class_indices.keys())}")
+    print(f"      Num classes  : {num_classes}")
+    print(f"      Train samples: {train_gen.samples}")
+    print(f"      Val samples  : {val_gen.samples}")
+    print(f"      Test samples : {test_gen.samples}")
     print()
 
     # ── Model ─────────────────────────────────────────────────────
     print("[2/4] Building model...")
-    model = build_model(num_classes=len(class_indices))
+    model = build_model(num_classes=num_classes)
     model.compile(
         optimizer=Adam(learning_rate=LR),
         loss='categorical_crossentropy',
@@ -222,13 +234,13 @@ def train():
         ReduceLROnPlateau(
             monitor='val_loss',
             factor=0.5,
-            patience=3,
+            patience=5,
             verbose=1,
-            min_lr=1e-6,
+            min_lr=1e-7,
         ),
         EarlyStopping(
-            monitor='val_accuracy',
-            patience=8,
+            monitor='val_loss',    # more stable than val_accuracy on small sets
+            patience=15,
             restore_best_weights=True,
             verbose=1,
         ),
@@ -245,21 +257,22 @@ def train():
     )
     print()
 
-    # ── Evaluate on val set (used as test since we have one split) ─
-    print("[4/4] Evaluating...")
-    val_gen.reset()
-    loss, accuracy = model.evaluate(val_gen, verbose=0)
+    # ── Evaluate on held-out test set ─────────────────────────────
+    print("[4/4] Evaluating on held-out test set...")
+    test_gen.reset()
+    loss, accuracy = model.evaluate(test_gen, verbose=0)
     print(f"\n✅ Final Test Accuracy : {accuracy * 100:.2f}%")
     print(f"   Final Test Loss     : {loss:.4f}\n")
 
     # Confusion matrix + classification report
-    val_gen.reset()
-    y_pred_probs = model.predict(val_gen, verbose=0)
+    test_gen.reset()
+    y_pred_probs = model.predict(test_gen, verbose=0)
     y_pred = np.argmax(y_pred_probs, axis=1)
-    y_true = val_gen.classes
+    y_true = test_gen.classes
 
-    idx_to_class = {v: k for k, v in class_indices.items()}
-    class_names = [idx_to_class[i] for i in sorted(idx_to_class)]
+    # Use original (un-normalised) class names from flow_from_directory for report
+    raw_idx_to_class = {v: k for k, v in train_gen.class_indices.items()}
+    class_names = [raw_idx_to_class[i] for i in sorted(raw_idx_to_class)]
 
     print("Classification Report:")
     print(classification_report(y_true, y_pred, target_names=class_names))
