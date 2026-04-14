@@ -68,7 +68,7 @@ export const Chatbot: React.FC = () => {
             <h2 className="font-serif text-3xl uppercase tracking-widest">Agronomy Assistant</h2>
             <p className="font-sans text-[10px] uppercase tracking-widest text-[#4B5563] mt-2 flex items-center space-x-2">
                <span className="inline-block w-2 h-2 bg-black"></span>
-               <span>System Online // Gemini Engine API</span>
+               <span>System Online // LLaMA 3 8B API</span>
             </p>
           </div>
           <div className="w-[48px] h-[48px] border-2 border-black flex items-center justify-center bg-black text-white">

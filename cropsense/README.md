@@ -30,7 +30,7 @@ Built as an educational artifact for **Manipal University Jaipur — CSE3231 ML 
 | **Backend API** | Python 3.11, FastAPI, Uvicorn |
 | **CNN (v2)** | TensorFlow/Keras, Pillow — custom 4-block CNN from scratch |
 | **ML Engine** | `scikit-learn`, `xgboost`, `shap`, `pandas`, `numpy`, `joblib` |
-| **GenAI** | Hugging Face Inference API (Mistral 7B) |
+| **GenAI** | Hugging Face Inference API (LLaMA 3 8B) |
 
 ---
 

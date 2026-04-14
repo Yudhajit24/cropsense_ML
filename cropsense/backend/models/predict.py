@@ -276,14 +276,14 @@ def predict_from_image(image_bytes: bytes, region: str) -> dict:
 
 # ─── NLP Chatbot ─────────────────────────────────────────────────────────────
 def chat(user_message, conversation_history):
-    """Farm expert chatbot using Hugging Face (Mistral 7B)."""
+    """Farm expert chatbot using Hugging Face (LLaMA 3 8B)."""
     load_dotenv()
     api_key = os.getenv("HUGGINGFACE_API_KEY")
     if not api_key or api_key == "your_hf_api_key_here":
         return "System notice: Hugging Face API key is not configured. Please add it to the .env file."
 
     try:
-        client = InferenceClient("mistralai/Mistral-7B-Instruct-v0.3", token=api_key)
+        client = InferenceClient("meta-llama/Meta-Llama-3-8B-Instruct", token=api_key)
 
         system_prompt = (
             "You are an expert Indian agricultural scientist with 20 years of experience "
