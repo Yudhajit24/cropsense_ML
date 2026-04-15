@@ -1,4 +1,5 @@
 import time
+from functools import lru_cache
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -117,6 +118,12 @@ def predict(data: CropInput):
 
 @app.get("/stats")
 def get_stats():
+    return _cached_stats()
+
+
+@lru_cache(maxsize=1)
+def _cached_stats():
+    """Cache dataset statistics — CSV is only re-read on server restart."""
     if not os.path.exists(DATA_PATH):
         return {"error": "Dataset not found. Please place crop_data.csv in data/ directory or run train.py to generate mock data."}
 
@@ -132,6 +139,12 @@ def get_stats():
 
 @app.get("/model-comparison")
 def get_model_comparison():
+    return _cached_model_comparison()
+
+
+@lru_cache(maxsize=1)
+def _cached_model_comparison():
+    """Cache model comparison CSV — only re-read on server restart."""
     path = os.path.join(SAVED_MODELS_DIR, 'model_comparison.csv')
     if not os.path.exists(path):
         return {"error": "Comparison not found. Train models first."}
@@ -141,6 +154,12 @@ def get_model_comparison():
 
 @app.get("/feature-importance")
 def get_feature_importance():
+    return _cached_feature_importance()
+
+
+@lru_cache(maxsize=1)
+def _cached_feature_importance():
+    """Cache feature importance JSON — only re-read on server restart."""
     path = os.path.join(SAVED_MODELS_DIR, 'feature_importance.json')
     if not os.path.exists(path):
         return {"error": "Feature importance not found."}
