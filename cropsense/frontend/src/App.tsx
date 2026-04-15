@@ -102,13 +102,18 @@ function App() {
     <div className="h-screen w-full flex flex-col bg-white overflow-hidden text-black antialiased font-sans">
 
       {/* ── TOP TOOLBAR ── */}
-      <header className="h-[76px] bg-white border-b-2 border-black flex items-center justify-between px-6 shrink-0 z-10 box-border">
+      <header className="h-[76px] bg-white border-b-2 border-black flex items-center justify-between px-6 shrink-0 z-10 box-border" role="banner">
         {/* Left */}
-        <div className="flex items-center space-x-2">
+        <nav className="flex items-center space-x-2" role="tablist" aria-label="Main navigation">
           <button
             onClick={() => setActiveTab('recommend')}
             className={`w-[44px] h-[44px] border-2 border-black flex items-center justify-center transition-colors ${activeTab === 'recommend' ? 'bg-black text-white' : 'bg-white text-black hover:bg-black hover:text-white'}`}
             title="Crop Recommendation"
+            role="tab"
+            aria-selected={activeTab === 'recommend'}
+            aria-controls="panel-recommend"
+            id="tab-recommend"
+            tabIndex={0}
           >
             <Sprout className="w-5 h-5" />
           </button>
@@ -116,6 +121,11 @@ function App() {
             onClick={() => setActiveTab('analytics')}
             className={`w-[44px] h-[44px] border-2 border-black flex items-center justify-center transition-colors ${activeTab === 'analytics' ? 'bg-black text-white' : 'bg-white text-black hover:bg-black hover:text-white'}`}
             title="Analytics"
+            role="tab"
+            aria-selected={activeTab === 'analytics'}
+            aria-controls="panel-analytics"
+            id="tab-analytics"
+            tabIndex={0}
           >
             <Activity className="w-5 h-5" />
           </button>
@@ -123,14 +133,19 @@ function App() {
             onClick={() => setActiveTab('assistant')}
             className={`w-[44px] h-[44px] border-2 border-black flex items-center justify-center transition-colors ${activeTab === 'assistant' ? 'bg-black text-white' : 'bg-white text-black hover:bg-black hover:text-white'}`}
             title="AI Assistant"
+            role="tab"
+            aria-selected={activeTab === 'assistant'}
+            aria-controls="panel-assistant"
+            id="tab-assistant"
+            tabIndex={0}
           >
             <MessageSquare className="w-5 h-5" />
           </button>
-          <div className="h-[32px] w-px bg-black mx-4" />
+          <div className="h-[32px] w-px bg-black mx-4" aria-hidden="true" />
           {isMockMode && (
-            <span className="text-xs uppercase tracking-widest font-serif border-2 border-black px-2 py-1">Mode: MOCK</span>
+            <span className="text-xs uppercase tracking-widest font-serif border-2 border-black px-2 py-1" role="status">Mode: MOCK</span>
           )}
-        </div>
+        </nav>
 
         {/* Middle */}
         <button className="h-[44px] bg-black text-white px-6 font-sans font-medium text-sm flex items-center space-x-2 hover:bg-white hover:text-black border-2 border-black transition-colors uppercase tracking-widest">
@@ -154,7 +169,7 @@ function App() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── MAIN CANVAS ── */}
-        <main className="flex-1 bg-gray-50 relative flex items-center justify-center p-8 overflow-y-auto">
+        <main className="flex-1 bg-gray-50 relative flex items-center justify-center p-8 overflow-y-auto" role="main" aria-label="Dashboard content">
           <div className="w-full max-w-5xl aspect-[16/10] bg-white border-2 border-black relative overflow-y-auto overflow-x-hidden flex flex-col shadow-none">
 
             {/* ── RECOMMEND TAB ── */}
