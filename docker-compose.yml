@@ -1,0 +1,40 @@
+# CropSense — Full-stack Docker Compose
+#
+# Usage:
+#   docker compose up --build        # Build and start both services
+#   docker compose down               # Stop all services
+#
+# The backend expects trained model pickles in models/saved/.
+# Run `python models/train.py` locally before first Docker build,
+# or mount the saved/ directory as a volume.
+
+services:
+  backend:
+    build:
+      context: ./cropsense/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./cropsense/backend/.env
+    volumes:
+      # Mount model weights so they persist across rebuilds
+      - ./cropsense/backend/models/saved:/app/models/saved
+      - ./cropsense/backend/data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./cropsense/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
