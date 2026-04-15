@@ -12,6 +12,7 @@ CNN trained from scratch per CSE3231 Session 10 lab requirement (no pretrained w
 import os
 import json
 import io
+from typing import Any, Dict, List, Optional, Union
 import numpy as np
 
 import joblib
@@ -56,7 +57,7 @@ CLUSTER_LABELS = {
 
 
 # ─── Model Loading ────────────────────────────────────────────────────────────
-def load_models():
+def load_models() -> bool:
     """
     Load all saved models into memory at startup.
     CNN loading is non-fatal — the v1 /predict endpoint works even if soil_cnn.h5
@@ -96,7 +97,7 @@ def load_models():
     return True
 
 
-def _load_cnn():
+def _load_cnn() -> None:
     """Load soil CNN and class indices. Safe to call; logs warning if absent."""
     global models
 
@@ -123,7 +124,7 @@ def _load_cnn():
 
 
 # ─── v1 Prediction Functions (unchanged) ─────────────────────────────────────
-def predict_crop(N, P, K, temp, humidity, ph, rainfall):
+def predict_crop(N: float, P: float, K: float, temp: float, humidity: float, ph: float, rainfall: float) -> Dict[str, Any]:
     """Predict crop and return top 3 with probabilities."""
     if 'classifier' not in models:
         return {"error": "Models not loaded. Call load_models() first."}
@@ -150,7 +151,7 @@ def predict_crop(N, P, K, temp, humidity, ph, rainfall):
     }
 
 
-def predict_yield(N, P, K, temp, humidity, ph, rainfall):
+def predict_yield(N: float, P: float, K: float, temp: float, humidity: float, ph: float, rainfall: float) -> float:
     """Predict estimated yield using Linear Regression."""
     if 'yield_model' not in models:
         return 0.0
@@ -160,7 +161,7 @@ def predict_yield(N, P, K, temp, humidity, ph, rainfall):
     return float(f"{float(predicted_yield):.2f}")
 
 
-def predict_cluster(N, P, K, temp, humidity, ph, rainfall):
+def predict_cluster(N: float, P: float, K: float, temp: float, humidity: float, ph: float, rainfall: float) -> Dict[str, Any]:
     """Predict soil profile cluster and logical label."""
     if 'kmeans' not in models:
         return {"cluster_id": 0, "soil_profile_label": "Unknown"}
@@ -191,7 +192,7 @@ def _preprocess_image(image_bytes: bytes) -> np.ndarray:
     return arr.astype(np.float32)
 
 
-def predict_from_image(image_bytes: bytes, region: str) -> dict:
+def predict_from_image(image_bytes: bytes, region: str) -> Dict[str, Any]:
     """
     Full image-to-crop-recommendation pipeline (v2 endpoint).
 
@@ -277,7 +278,7 @@ def predict_from_image(image_bytes: bytes, region: str) -> dict:
 
 
 # ─── NLP Chatbot ─────────────────────────────────────────────────────────────
-def chat(user_message, conversation_history):
+def chat(user_message: str, conversation_history: List[Dict[str, str]]) -> str:
     """Farm expert chatbot using Hugging Face (LLaMA 3 8B)."""
     load_dotenv()
     api_key = os.getenv("HUGGINGFACE_API_KEY")
