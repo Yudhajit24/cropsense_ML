@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+venv_tf/
+.env
+
+# Data (too large for Docker image — mount as volume)
+data/soil_images/
+data/*.zip
+
+# Model weights (optional — mount as volume if needed)
+models/saved/soil_cnn.h5
+
+# Tests
+tests/
+
+# IDE
+.vscode/
+.idea/
+*.log
+.DS_Store
