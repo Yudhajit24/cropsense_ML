@@ -1,0 +1,48 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cropsense/backend/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cropsense/backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: cropsense/backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: cropsense/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest httpx
+
+      - name: Run unit tests
+        working-directory: cropsense/backend
+        run: |
+          python -m pytest tests/ -v --tb=short
+
+      - name: Check import health
+        working-directory: cropsense/backend
+        run: |
+          python -c "from models.predict import load_models; print('✅ Imports OK')"
+          python -c "from models.soil_lookup import get_all_soil_info; print('✅ Soil lookup OK')"
+          python -c "from models.region_lookup import get_all_regions; print('✅ Region lookup OK')"
