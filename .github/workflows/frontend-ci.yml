@@ -1,0 +1,45 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cropsense/frontend/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cropsense/frontend/**'
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['20', '22']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: cropsense/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: cropsense/frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: cropsense/frontend
+        run: npm run lint
+
+      - name: Type check
+        working-directory: cropsense/frontend
+        run: npx tsc --noEmit
+
+      - name: Build production bundle
+        working-directory: cropsense/frontend
+        run: npm run build
