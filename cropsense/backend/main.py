@@ -80,6 +80,20 @@ def health_check():
     return {"status": "ok", "version": "2.0"}
 
 
+@app.get("/metrics")
+def get_metrics():
+    """Return model metadata and system diagnostics for monitoring."""
+    from models.predict import models as loaded_models
+    model_names = [k for k in loaded_models.keys() if k != "feature_importance"]
+    return {
+        "loaded_models": model_names,
+        "model_count": len(model_names),
+        "cnn_available": "cnn" in loaded_models,
+        "ensemble_available": "classifier" in loaded_models,
+        "api_version": "2.0",
+    }
+
+
 # ─── v1 Endpoints (unchanged) ─────────────────────────────────────────────────
 
 @app.post("/predict")
