@@ -1,21 +1,30 @@
 # CropSense — AI-Powered Crop Intelligence Dashboard 🌾
 
+[![Backend CI](https://github.com/Yudhajit24/cropsense_ML/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Yudhajit24/cropsense_ML/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/Yudhajit24/cropsense_ML/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Yudhajit24/cropsense_ML/actions/workflows/frontend-ci.yml)
+![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-2.13+-FF6F00?logo=tensorflow&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+
 CropSense is a full-stack Machine Learning web application designed to empower Indian smallholder farmers with data-driven agricultural decisions. The system analyzes soil parameters (N, P, K, pH) and climate sensors (Temperature, Humidity, Rainfall) to provide highly accurate crop recommendations, estimated yields, and soil profile clustering.
 
-Built as an educational artifact for **Manipal University Jaipur — CSE3231 ML Lab**.
+In **v2**, the manual soil parameter form is replaced by a **soil photo upload + region selector**: a CNN trained from scratch classifies the image into one of 8 soil types, maps it to NPK/pH ranges via an agronomic lookup table, combines with regional climate data, and passes the full feature vector to the existing ensemble crop recommender.
 
-![App Screenshot Placeholder](https://via.placeholder.com/1200x600.png?text=CropSense+Dashboard)
+Built as an educational artifact for **Manipal University Jaipur — CSE3231 ML Lab**.
 
 ---
 
 ## 🎯 Features
 
-- **Optimal Crop Recommendation**: Powered by an advanced Soft Voting Ensemble (XGBoost, Random Forest, SVM).
-- **Yield Estimation**: Linear Regression synthesis projecting yield in kg/ha based on nutrient density and rainfall.
-- **Soil Mapping (K-Means)**: Segments input into 5 distinct soil clustering profiles.
-- **Explainable AI (XAI)**: SHAP-powered feature importance visualization explaining exactly *why* a crop was recommended.
-- **NLP Agronomy Expert**: An integrated LLM Assistant (Gemini 1.5 Flash) trained to advise on Indian farming conditions.
-- **Graceful Mock Mode**: UI functions seamlessly with rich static data even when the backend API is unreachable.
+- **📷 Soil Photo Classification**: CNN classifies soil images into 8 types (~87% accuracy)
+- **🗺️ Region-Aware Climate**: 20 Indian states with auto-filled IMD climate data
+- **🧪 Agronomic Lookup**: Soil type → deterministic NPK/pH feature vector
+- **🌾 Crop Recommendation**: Soft Voting Ensemble (XGBoost + RF + SVM) — 99.3% accuracy
+- **📈 Yield Estimation**: Linear Regression projecting yield in kg/ha
+- **🔬 Explainable AI**: SHAP feature importance visualization
+- **🤖 NLP Agronomy Expert**: LLaMA 3 8B via Hugging Face Inference API
+- **🎨 Graceful Mock Mode**: Full UI demo without backend
 
 ---
 
@@ -25,93 +34,104 @@ Built as an educational artifact for **Manipal University Jaipur — CSE3231 ML 
 |---|---|
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, Recharts, Axios, Lucide Icons |
 | **Backend API** | Python 3.11, FastAPI, Uvicorn |
+| **CNN (v2)** | TensorFlow/Keras, Pillow — custom 4-block CNN from scratch |
 | **ML Engine** | `scikit-learn`, `xgboost`, `shap`, `pandas`, `numpy`, `joblib` |
-| **GenAI** | `google-generativeai` (Gemini 1.5 Flash) |
+| **GenAI** | Hugging Face Inference API (LLaMA 3 8B) |
+| **CI/CD** | GitHub Actions (Python + Node.js matrix) |
+| **Containerization** | Docker, Docker Compose |
 
 ---
 
-## 📊 The ML Pipeline Details
+## 📊 The ML Pipeline
 
-The `models/train.py` script encompasses the entire laboratory curriculum:
-1. **EDA**: Missing value checks, correlation heatmaps.
-2. **Preprocessing**: Label Encoding, Standard Scaling, 80/20 Stratified Split.
-3. **Classifiers Trained**: 
-   - Naive Bayes
-   - Decision Tree (max_depth=10)
-   - KNN (k=5)
-   - SVM (RBF)
-   - Random Forest (200 estimators)
-   - XGBoost
-   - *Final Predictor*: Soft Voting Classifier (RF + XGB + SVM)
-4. **Regression**: Synthetic yield training via Multiple Linear Regression.
-5. **Clustering**: K-Means (k=5) to label soil profiles.
-6. **Interpretability**: SHAP (TreeExplainer) on the ensemble feature distributions.
+### Part 1 — Ensemble Crop Recommender (v1)
+1. **EDA**: Correlation heatmaps, class distribution
+2. **Preprocessing**: Label Encoding, Standard Scaling, 80/20 stratified split
+3. **Classifiers**: Naive Bayes, Decision Tree, KNN, SVM, Random Forest, XGBoost
+4. **Ensemble**: Soft Voting (RF + XGB + SVM) — **99.3% accuracy**
+5. **Regression**: Synthetic yield via Multiple Linear Regression
+6. **Clustering**: K-Means (k=5) soil profiles
+7. **SHAP**: TreeExplainer feature importance
 
-> **Note on Lab Submission**: The `notebooks/eda_and_training.ipynb` contains the exact mirrored sequential execution of the ML pipeline for Jupyter environments.
+### Part 2 — CNN Soil Classifier (v2)
+1. **Dataset**: [Soil Image Dataset](https://www.kaggle.com/datasets/jayaprakashpondy/soil-image-dataset) (~4,600 images, 8 classes)
+2. **Architecture**: 4 conv blocks (32→64→128→256) + GlobalAvgPool + Dense(256) + Dropout(0.4) + Softmax(8)
+3. **Training**: Adam + ReduceLROnPlateau + EarlyStopping. Trained from scratch (no pretrained weights)
+4. **Result**: **~87% test accuracy** on held-out validation set
 
 ---
 
 ## 🛠️ Setup Instructions
 
-### 1. Dataset Preparation
-This project requires the **Crop Recommendation Dataset**.
-1. Download it from Kaggle: [Crop Recommendation Dataset](https://www.kaggle.com/datasets/atharvaingle/crop-recommendation-dataset)
-2. Save the extracted `Crop_recommendation.csv` into the `backend/data/` folder and rename it to `crop_data.csv`.
-*(Note: If the file is missing, the training script has a fallback to generate mock data to prevent crashes).*
-
-### 2. Backend Setup
-Navigate to the backend directory:
+### 1. Backend Setup
 ```bash
-cd backend
-```
-Install dependencies:
-```bash
+cd cropsense/backend
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 ```
-Set up your Environment Variables:
-1. Copy `.env.example` to `.env`.
-2. Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
-3. Add the key to your `.env` file under `GEMINI_API_KEY`.
 
-Train the ML Models (generates pickles inside `models/saved/`):
+Copy `.env.example` to `.env` and add your `HUGGINGFACE_API_KEY` ([get one here](https://huggingface.co/settings/tokens)).
+
+Train the ML models:
 ```bash
 python models/train.py
 ```
 
-Run the FastAPI Server:
+Start the API:
 ```bash
 uvicorn main:app --reload
 ```
-The API will run at `http://localhost:8000`. API Docs available at `http://localhost:8000/docs`.
 
-### 3. Frontend Setup
-Navigate to the frontend directory:
+### 2. Frontend Setup
 ```bash
-cd frontend
-```
-Install Node modules:
-```bash
+cd cropsense/frontend
 npm install
-```
-Start the Vite Development Server:
-```bash
 npm run dev
 ```
-The App will launch at `http://localhost:5173`.
+
+### 3. Quick Start (both servers)
+```bash
+cd cropsense
+./run_all.sh
+```
 
 ---
 
-## 🔗 API Documentation
+## 🔗 API Reference
 
-| Endpoint | Method | Body | Description |
-|---|---|---|---|
-| `/health` | GET | `None` | Verifies server operational status. |
-| `/predict`| POST| `{N, P, K, temp, humidity, ph, rainfall}` | Returns `{crop, yield, cluster}`. |
-| `/stats` | GET | `None` | Gets dataset statistics for Analytics Panel. |
-| `/model-comparison`| GET | `None` | Returns evaluation metrics for all trained models. |
-| `/feature-importance`| GET | `None` | SHAP impact array for UI chart. |
-| `/chat` | POST| `{message, history}` | Interfaces with Gemini Model. |
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Server status + uptime diagnostics |
+| `/metrics` | GET | Model metadata and loaded model info |
+| `/predict` | POST | Ensemble crop recommendation (v1) |
+| `/predict-image` | POST | CNN → lookup → ensemble (v2) |
+| `/soil-types` | GET | 8 soil types with NPK/pH ranges |
+| `/regions` | GET | 20 supported Indian state names |
+| `/stats` | GET | Dataset statistics |
+| `/model-comparison` | GET | Model evaluation metrics |
+| `/feature-importance` | GET | SHAP values array |
+| `/chat` | POST | LLM farm advisory |
 
 ---
 
-*CropSense — High-precision agronomy at your fingertips.*
+## 🐳 Docker
+
+```bash
+# Build and run both services
+docker compose up --build
+
+# Backend only
+cd cropsense/backend
+docker build -t cropsense-backend .
+docker run -p 8000:8000 --env-file .env cropsense-backend
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+*CropSense v2 — Multimodal AI agronomy at your fingertips.*
