@@ -2,7 +2,7 @@ import time
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Any
 import pandas as pd
 import os
@@ -33,21 +33,24 @@ ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/jpg", "image/png"}
 MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 class CropInput(BaseModel):
-    N: float
-    P: float
-    K: float
-    temperature: float
-    humidity: float
-    ph: float
-    rainfall: float
+    """Soil and climate parameters for crop recommendation."""
+    N: float = Field(..., ge=0, le=300, description="Nitrogen content (mg/kg)")
+    P: float = Field(..., ge=0, le=300, description="Phosphorus content (mg/kg)")
+    K: float = Field(..., ge=0, le=300, description="Potassium content (mg/kg)")
+    temperature: float = Field(..., ge=-10, le=60, description="Temperature (°C)")
+    humidity: float = Field(..., ge=0, le=100, description="Relative humidity (%)")
+    ph: float = Field(..., ge=0, le=14, description="Soil pH value")
+    rainfall: float = Field(..., ge=0, le=5000, description="Annual rainfall (mm)")
 
 class ChatMessage(BaseModel):
-    role: str
-    content: str
+    """Single message in conversation history."""
+    role: str = Field(..., pattern="^(user|assistant|system)$", description="Message role")
+    content: str = Field(..., min_length=1, max_length=10000, description="Message content")
 
 class ChatInput(BaseModel):
-    message: str
-    history: List[ChatMessage] = []
+    """Chat request payload."""
+    message: str = Field(..., min_length=1, max_length=5000, description="User message")
+    history: List[ChatMessage] = Field(default=[], description="Conversation history")
 
 
 @app.middleware("http")
