@@ -70,15 +70,32 @@ async def log_requests(request: Request, call_next):
     return response
 
 
+_startup_time: float = 0.0
+
+
 @app.on_event("startup")
 async def startup_event():
+    global _startup_time
+    _startup_time = time.time()
     logger.info("Starting up CropSense API v2...")
     load_models()
 
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "version": "2.0"}
+    """Detailed health check with uptime and dependency status."""
+    import sys
+    from models.predict import models as loaded_models
+    uptime_seconds = round(time.time() - _startup_time, 1) if _startup_time else 0
+    return {
+        "status": "ok",
+        "version": "2.0",
+        "uptime_seconds": uptime_seconds,
+        "python_version": sys.version.split()[0],
+        "models_loaded": len(loaded_models),
+        "ensemble_ready": "classifier" in loaded_models,
+        "cnn_ready": "cnn" in loaded_models,
+    }
 
 
 @app.get("/metrics")
