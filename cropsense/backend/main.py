@@ -1,4 +1,6 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+import time
+
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
@@ -6,6 +8,7 @@ import pandas as pd
 import os
 import json
 
+from logger import logger
 from models.predict import load_models, predict_crop, predict_yield, predict_cluster, chat, predict_from_image
 from models.soil_lookup import get_all_soil_info
 from models.region_lookup import get_all_regions
@@ -47,9 +50,25 @@ class ChatInput(BaseModel):
     history: List[ChatMessage] = []
 
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log every incoming request with method, path, and response time."""
+    start = time.time()
+    response = await call_next(request)
+    duration_ms = (time.time() - start) * 1000
+    logger.info(
+        "%s %s → %d (%.1fms)",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
+
+
 @app.on_event("startup")
 async def startup_event():
-    print("Starting up CropSense API v2...")
+    logger.info("Starting up CropSense API v2...")
     load_models()
 
 

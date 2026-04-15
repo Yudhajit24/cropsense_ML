@@ -18,6 +18,8 @@ import joblib
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 
+from logger import logger
+
 # PIL for image preprocessing (must match CNN training preprocessing exactly)
 try:
     from PIL import Image as PILImage
@@ -70,7 +72,7 @@ def load_models():
     for req in required_files:
         path = os.path.join(SAVED_MODELS_DIR, req)
         if not os.path.exists(path):
-            print(f"WARNING: Model file {req} not found. Run train.py first.")
+            logger.warning("Model file %s not found. Run train.py first.", req)
             return False
 
     try:
@@ -84,9 +86,9 @@ def load_models():
         with open(os.path.join(SAVED_MODELS_DIR, 'feature_importance.json'), 'r') as f:
             models['feature_importance'] = json.load(f)
 
-        print("✅ Ensemble models loaded successfully.")
+        logger.info("✅ Ensemble models loaded successfully.")
     except Exception as e:
-        print(f"Error loading ensemble models: {e}")
+        logger.error("Error loading ensemble models: %s", e)
         return False
 
     # ── v2 CNN model (optional — non-fatal) ──────────────────────
@@ -99,13 +101,13 @@ def _load_cnn():
     global models
 
     if not TF_AVAILABLE:
-        print("WARNING: TensorFlow not installed. /predict-image endpoint unavailable.")
+        logger.warning("TensorFlow not installed. /predict-image endpoint unavailable.")
         return
 
     if not os.path.exists(CNN_MODEL_PATH):
-        print(f"INFO: soil_cnn.h5 not found at {CNN_MODEL_PATH}.")
-        print("      Run: python models/train_cnn.py  (after downloading Kaggle dataset)")
-        print("      The /predict-image endpoint will use mock fallback until then.")
+        logger.info("soil_cnn.h5 not found at %s.", CNN_MODEL_PATH)
+        logger.info("      Run: python models/train_cnn.py  (after downloading Kaggle dataset)")
+        logger.info("      The /predict-image endpoint will use mock fallback until then.")
         return
 
     try:
@@ -115,9 +117,9 @@ def _load_cnn():
         # class_indices.json stores {normalised_name: int_index}
         # Invert to {int_index: normalised_name} for argmax lookup
         models['cnn_idx_to_class'] = {int(v): k for k, v in raw.items()}
-        print(f"✅ Soil CNN loaded ({len(models['cnn_idx_to_class'])} classes): {list(models['cnn_idx_to_class'].values())}")
+        logger.info("✅ Soil CNN loaded (%d classes): %s", len(models['cnn_idx_to_class']), list(models['cnn_idx_to_class'].values()))
     except Exception as e:
-        print(f"WARNING: Could not load soil CNN: {e}")
+        logger.warning("Could not load soil CNN: %s", e)
 
 
 # ─── v1 Prediction Functions (unchanged) ─────────────────────────────────────
@@ -303,5 +305,5 @@ def chat(user_message, conversation_history):
         )
         return response.choices[0].message.content
     except Exception as e:
-        print(f"Hugging Face error: {e}")
+        logger.error("Hugging Face error: %s", e)
         return "I'm having trouble connecting to my knowledge base right now. Please try again later."
