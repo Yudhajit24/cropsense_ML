@@ -168,9 +168,9 @@ function App() {
       {/* ── BODY ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── MAIN CANVAS ── */}
-        <main className="flex-1 bg-gray-50 relative flex items-center justify-center p-8 overflow-y-auto" role="main" aria-label="Dashboard content">
-          <div className="w-full max-w-5xl aspect-[16/10] bg-white border-2 border-black relative overflow-y-auto overflow-x-hidden flex flex-col shadow-none">
+        {/* ── MAIN CONTENT ── */}
+        <main className="flex-1 bg-white relative flex flex-col overflow-y-auto overflow-x-hidden" role="main" aria-label="Dashboard content">
+          <div className="w-full h-full relative flex flex-col">
 
             {/* ── RECOMMEND TAB ── */}
             {activeTab === 'recommend' && (
