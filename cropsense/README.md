@@ -32,7 +32,36 @@ Built as an educational artifact for **Manipal University Jaipur — CSE3231 ML 
 | **ML Engine** | `scikit-learn`, `xgboost`, `shap`, `pandas`, `numpy`, `joblib` |
 | **GenAI** | Hugging Face Inference API (LLaMA 3 8B) |
 
+### System Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        React + Vite Frontend                     │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
+│  │ Image Upload  │  │  Analytics   │  │   LLM Chat Assistant   │ │
+│  │    + Region   │  │  Dashboard   │  │    (LLaMA 3 8B)        │ │
+│  └──────┬───────┘  └──────┬───────┘  └────────────┬───────────┘ │
+└─────────┼──────────────────┼──────────────────────┼─────────────┘
+          │ POST /predict-image  GET /stats         │ POST /chat
+          ▼                  ▼                       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     FastAPI Backend (Uvicorn)                     │
+│                                                                   │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────┐   │
+│  │  CNN Soil     │───▶│  Agronomic   │───▶│  Voting Ensemble │   │
+│  │  Classifier   │    │  Lookup      │    │  (RF+XGB+SVM)    │   │
+│  │  (TensorFlow) │    │  (NPK + pH)  │    │                  │   │
+│  └──────────────┘    └──────────────┘    └────────┬─────────┘   │
+│                                                    │             │
+│  ┌──────────────┐    ┌──────────────┐    ┌────────▼─────────┐   │
+│  │  Region →     │───▶│  7-Feature   │    │  SHAP + K-Means  │   │
+│  │  Climate Map  │    │  Vector      │    │  + Yield LR      │   │
+│  └──────────────┘    └──────────────┘    └──────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ---
+
 
 ## 📊 The ML Pipeline
 
